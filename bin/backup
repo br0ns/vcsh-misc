@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BUP_DIR=/media/br0ns/backup/bup/
+TARGET=/home/br0ns/
+
+if [ ! -d $BUP_DIR ] ; then
+    echo "$BUP_DIR is not a directory"
+    exit 1
+fi
+
+sudo "BUP_DIR=$BUP_DIR bup index -ux $TARGET"
+sudo "BUP_DIR=$BUP_DIR bup save -n home $TARGET"
