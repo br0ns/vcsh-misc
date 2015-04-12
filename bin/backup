@@ -8,5 +8,5 @@ if [ ! -d $BUP_DIR ] ; then
     exit 1
 fi
 
-sudo "BUP_DIR=$BUP_DIR bup index -ux $TARGET"
-sudo "BUP_DIR=$BUP_DIR bup save -n home $TARGET"
+BUP_DIR=$BUP_DIR sudo -E bup index -ux "$TARGET"
+BUP_DIR=$BUP_DIR sudo -E bup save -n home "$TARGET"
