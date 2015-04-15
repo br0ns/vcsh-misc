@@ -1,6 +1,7 @@
 *
 !/bin
 !/bin/backup
+!/bin/volume
 !/.config
 !/.config/dunst
 !/.config/dunst/dunstrc

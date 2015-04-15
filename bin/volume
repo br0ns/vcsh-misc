@@ -1,0 +1,85 @@
+#!/usr/bin/env python2
+import os, sys, subprocess, re
+
+PROGRESSBAR_WIDTH = 35
+
+def usage():
+    print 'usage: %s (+N|-N|toggle|mute|unmute)'
+    sys.exit(1)
+
+if len(sys.argv) != 2:
+    usage()
+
+opt = sys.argv[1]
+if opt[0] in '+-':
+    if not opt[1:].isdigit():
+        usage()
+    adjust = int(opt[1:])
+    sign = opt[0]
+    opt = 'adjust'
+elif opt.isdigit():
+    adjust = int(opt)
+    sign = ''
+    opt = 'adjust'
+
+if not opt in ('adjust', 'toggle', 'mute', 'unmute'):
+    usage()
+
+if   opt == 'adjust':
+    cmd = '%d%%%s unmute' % (adjust, sign)
+else:
+    cmd = opt
+
+cmd = 'amixer sset Master %s' % cmd
+out = subprocess.check_output(cmd, shell = True)
+
+if not out.startswith('Simple mixer control'):
+    print 'Unexpected output from running `%s`:' % cmd
+    print '=' * 80
+    print out
+    print '=' * 80
+    sys.exit(1)
+
+lvl, state = re.findall(r'\[(\d+)%\] \[[^\]]+\] \[(on|off)\]', out)[0]
+lvl = int(lvl)
+print lvl, state
+
+if state == 'off':
+    bar = ' muted '
+else:
+    bar = ' %d%% ' % lvl
+
+bar = bar.ljust((PROGRESSBAR_WIDTH - 2) * lvl / 100, '=')
+bar = '[%s]' % bar.ljust(PROGRESSBAR_WIDTH - 2)
+
+try:
+    import dbus
+except:
+    print 'install python-dbus to get notifications'
+    sys.exit(0)
+
+item              = 'org.freedesktop.Notifications'
+path              = '/org/freedesktop/Notifications'
+interface         = 'org.freedesktop.Notifications'
+app_name          = 'volume'
+# This field is the reason we don't use notify-send or pynotify; we want new
+# volume notifications to be replace old ones
+id_num_to_replace = 0x212579f8
+icon              = ''
+title             = 'Volume'
+text              = bar
+actions_list      = ''
+hint              = ''
+time              = 1000 # ms
+
+bus = dbus.SessionBus()
+notif = bus.get_object(item, path)
+notify = dbus.Interface(notif, interface)
+notify.Notify(app_name,
+              id_num_to_replace,
+              icon,
+              title,
+              text,
+              actions_list,
+              hint,
+              time)
