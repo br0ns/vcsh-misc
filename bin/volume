@@ -42,7 +42,6 @@ if not out.startswith('Simple mixer control'):
 
 lvl, state = re.findall(r'\[(\d+)%\] \[[^\]]+\] \[(on|off)\]', out)[0]
 lvl = int(lvl)
-print lvl, state
 
 if state == 'off':
     bar = ' muted '
