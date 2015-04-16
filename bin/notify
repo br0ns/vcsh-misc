@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+import os, sys, fcntl, argparse, subprocess, signal, time
+
+FONT  = '8x13'
+COLOR = 'white'
+ALIGN = 'right'
+
+parser = argparse.ArgumentParser(
+    description = 'Replacement for notify-send'
+)
+
+parser.add_argument(
+    'summary',
+    metavar='<summary>',
+    help='Message summary'
+)
+
+parser.add_argument(
+    'body',
+    metavar='<body>',
+    default='',
+    nargs='*',
+    help='Message body, one line per argument'
+)
+
+parser.add_argument(
+    "-p", "--percentage",
+    type=int,
+    default=None,
+    help="Progress percentage",
+)
+
+parser.add_argument(
+    "-t", "--time",
+    type=int,
+    default=3,
+    help="Seconds to show notification",
+)
+
+args = parser.parse_args()
+text = [args.summary]
+
+cmd = ['osd_cat',
+       '--align=%s' % ALIGN,
+       '--outline=1',
+       '--font=%s' % FONT,
+       '--color=%s' % COLOR,
+       '--delay=%d' % args.time,
+       ]
+
+if args.percentage:
+    cmd += ['--text=%s' % args.summary,
+            '--barmode=percentage',
+            '--percentage=%d' % args.percentage,
+            ]
+elif args.body:
+    text += args.body
+
+# Left align text
+ljust = max(map(len, text))
+text = [line.ljust(ljust) for line in text]
+
+proc = subprocess.Popen(cmd, stdin  = subprocess.PIPE)
+
+newpid = proc.pid
+
+pidfile = open('/tmp/xosd.pid', 'r+')
+fcntl.flock(pidfile.fileno(), fcntl.LOCK_EX)
+oldpid = int(pidfile.read() or 0)
+pidfile.seek(0)
+pidfile.truncate()
+pidfile.write(str(newpid))
+pidfile.flush()
+pidfile.close()
+
+proc.stdin.write('\n'.join(text))
+proc.stdin.close()
+
+# Long enough that xosd has a change to redraw and short enough that a human
+# won't notice
+time.sleep(0.06)
+if oldpid:
+    try:
+        os.kill(oldpid, signal.SIGKILL)
+    except OSError:
+        # nothing to kill
+        pass

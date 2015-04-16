@@ -1,6 +1,7 @@
 *
 !/bin
 !/bin/backup
+!/bin/notify
 !/bin/volume
 !/.config
 !/.config/dunst
