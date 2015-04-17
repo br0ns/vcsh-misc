@@ -64,7 +64,7 @@ proc = subprocess.Popen(cmd, stdin  = subprocess.PIPE)
 
 newpid = proc.pid
 
-pidfile = open('/tmp/xosd.pid', 'r+')
+pidfile = open('/tmp/xosd.pid', 'a+')
 fcntl.flock(pidfile.fileno(), fcntl.LOCK_EX)
 oldpid = int(pidfile.read() or 0)
 pidfile.seek(0)
