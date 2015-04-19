@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import os, sys, fcntl, argparse, subprocess, signal, time
 
-FONT  = '8x13'
-COLOR = 'white'
-ALIGN = 'right'
+FONT   = '8x13'
+COLOR  = 'white'
+UCOLOR = 'red'
+ALIGN  = 'right'
+OFFSET = 30
+INDENT = 30
 
 parser = argparse.ArgumentParser(
     description = 'Replacement for notify-send'
@@ -37,51 +40,69 @@ parser.add_argument(
     help="Seconds to show notification",
 )
 
+parser.add_argument(
+    "-u", "--urgent",
+    action='store_true',
+    default=False,
+    help="Seconds to show notification",
+)
+
 args = parser.parse_args()
-text = [args.summary]
 
-cmd = ['osd_cat',
-       '--align=%s' % ALIGN,
-       '--outline=1',
-       '--font=%s' % FONT,
-       '--color=%s' % COLOR,
-       '--delay=%d' % args.time,
-       ]
+def notify(COLOR):
+    text = [args.summary]
+    cmd = ['osd_cat',
+           '--align=%s' % ALIGN,
+           '--outline=1',
+           '--font=%s' % FONT,
+           '--color=%s' % COLOR,
+           '--delay=%d' % args.time,
+           '--offset=%d' % OFFSET,
+           '--indent=%d' % INDENT,
+           ]
 
-if args.percentage:
-    cmd += ['--text=%s' % args.summary,
-            '--barmode=percentage',
-            '--percentage=%d' % args.percentage,
-            ]
-elif args.body:
-    text += args.body
+    if args.percentage:
+        cmd += ['--text=%s' % args.summary,
+                '--barmode=percentage',
+                '--percentage=%d' % args.percentage,
+                ]
+    elif args.body:
+        text += args.body
 
-# Left align text
-ljust = max(map(len, text))
-text = [line.ljust(ljust) for line in text]
+    # Left align text
+    ljust = max(map(len, text))
+    text = [line.ljust(ljust) for line in text]
 
-proc = subprocess.Popen(cmd, stdin  = subprocess.PIPE)
+    proc = subprocess.Popen(cmd, stdin  = subprocess.PIPE)
 
-newpid = proc.pid
+    newpid = proc.pid
 
-pidfile = open('/tmp/xosd.pid', 'a+')
-fcntl.flock(pidfile.fileno(), fcntl.LOCK_EX)
-oldpid = int(pidfile.read() or 0)
-pidfile.seek(0)
-pidfile.truncate()
-pidfile.write(str(newpid))
-pidfile.flush()
-pidfile.close()
+    pidfile = open('/tmp/xosd.pid', 'a+')
+    fcntl.flock(pidfile.fileno(), fcntl.LOCK_EX)
+    oldpid = int(pidfile.read() or 0)
+    pidfile.seek(0)
+    pidfile.truncate()
+    pidfile.write(str(newpid))
+    pidfile.flush()
+    pidfile.close()
 
-proc.stdin.write('\n'.join(text))
-proc.stdin.close()
+    proc.stdin.write('\n'.join(text))
+    proc.stdin.close()
 
-# Long enough that xosd has a change to redraw and short enough that a human
-# won't notice
-time.sleep(0.06)
-if oldpid:
-    try:
-        os.kill(oldpid, signal.SIGKILL)
-    except OSError:
-        # nothing to kill
-        pass
+    # Long enough that xosd has a change to redraw and short enough that a human
+    # won't notice
+    time.sleep(0.06)
+    if oldpid:
+        try:
+            os.kill(oldpid, signal.SIGKILL)
+        except OSError:
+            # nothing to kill
+            pass
+
+if args.urgent:
+    u = False
+    for _ in range(10):
+        notify(UCOLOR if u else COLOR)
+        u = not u
+        time.sleep(0.3)
+notify(COLOR)
