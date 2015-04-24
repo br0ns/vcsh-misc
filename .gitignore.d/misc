@@ -3,8 +3,5 @@
 !/bin/backup
 !/bin/notify
 !/bin/volume
-!/.config
-!/.config/dunst
-!/.config/dunst/dunstrc
 !/.gitignore.d
 !/.gitignore.d/misc
