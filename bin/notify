@@ -62,7 +62,7 @@ def notify(COLOR):
            ]
 
     if args.percentage:
-        cmd += ['--text=%s' % args.summary,
+        cmd += ['--text="%s"' % args.summary,
                 '--barmode=percentage',
                 '--percentage=%d' % args.percentage,
                 ]
@@ -73,7 +73,8 @@ def notify(COLOR):
     ljust = max(map(len, text))
     text = [line.ljust(ljust) for line in text]
 
-    proc = subprocess.Popen(cmd, stdin  = subprocess.PIPE)
+    cmd = ' '.join(cmd) + ';rm -f /tmp/xosd.pid'
+    proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, shell = True)
 
     newpid = proc.pid
 
