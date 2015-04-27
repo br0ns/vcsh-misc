@@ -73,8 +73,7 @@ def notify(COLOR):
     ljust = max(map(len, text))
     text = [line.ljust(ljust) for line in text]
 
-    cmd = ' '.join(cmd) + ';rm -f /tmp/xosd.pid'
-    proc = subprocess.Popen(cmd, stdin = subprocess.PIPE, shell = True)
+    proc = subprocess.Popen(cmd, stdin = subprocess.PIPE)
 
     newpid = proc.pid
 
