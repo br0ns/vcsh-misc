@@ -62,7 +62,7 @@ def notify(COLOR):
            ]
 
     if args.percentage:
-        cmd += ['--text="%s"' % args.summary,
+        cmd += ['--text=%s' % args.summary,
                 '--barmode=percentage',
                 '--percentage=%d' % args.percentage,
                 ]
