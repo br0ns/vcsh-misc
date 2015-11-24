@@ -3,5 +3,6 @@
 !/bin/backup
 !/bin/notify
 !/bin/volume
+!/bin/xrandr-cycle
 !/.gitignore.d
 !/.gitignore.d/misc

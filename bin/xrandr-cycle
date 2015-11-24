@@ -1,0 +1,34 @@
+#!/usr/bin/env python2.7
+
+import subprocess, sys, os, re
+cur_file = '/tmp/.xrandr-current'
+
+def connected():
+    o = subprocess.check_output('xrandr')
+    return re.findall('^([a-zA-Z0-9]+) connected', o, re.MULTILINE)
+
+def current():
+    try:
+        with open(cur_file) as fd:
+            return fd.read()
+    except:
+        return None
+
+def switch():
+    co = connected()
+    cu = current()
+    try:
+        auto = (co.index(cu) + 1) % len(co)
+    except:
+        auto = 0
+    auto = co.pop(auto)
+    off = co
+    args = ['xrandr', '--output', auto, '--auto']
+    for d in off:
+        args += ['--output', d, '--off']
+    with open(cur_file, 'w') as fd:
+        fd.write(auto)
+    subprocess.call(args)
+
+if __name__ == '__main__':
+    switch()
