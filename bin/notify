@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os, sys, fcntl, argparse, subprocess, signal, time
 
-FONT   = '8x13'
-COLOR  = 'white'
-UCOLOR = 'red'
+FONT   = '10x20'
+COLOR  = '#FBB829'
+UCOLOR = '#F02311'
 ALIGN  = 'right'
 OFFSET = 30
 INDENT = 30
@@ -50,7 +50,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def notify(COLOR):
-    text = [args.summary]
+    text = [args.summary] if args.summary else []
     cmd = ['osd_cat',
            '--align=%s' % ALIGN,
            '--outline=1',
