@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     'summary',
     metavar='<summary>',
-    help='Message summary'
+    help='Message summary.',
+    default='',
 )
 
 parser.add_argument(
@@ -23,34 +24,41 @@ parser.add_argument(
     metavar='<body>',
     default='',
     nargs='*',
-    help='Message body, one line per argument'
+    help='Message body.  Arguments will go on separate lines.',
 )
 
 parser.add_argument(
-    "-p", "--percentage",
+    '-p', '--percentage',
     type=int,
     default=None,
-    help="Progress percentage",
+    help='Progress percentage.',
 )
 
 parser.add_argument(
-    "-t", "--time",
+    '-t', '--time',
     type=int,
     default=3,
-    help="Seconds to show notification",
+    help='Seconds to show notification.',
 )
 
 parser.add_argument(
-    "-u", "--urgent",
+    '-u', '--urgent',
     action='store_true',
     default=False,
-    help="Seconds to show notification",
+    help='Show as urgent.',
+)
+
+parser.add_argument(
+    '--rjust',
+    action='store_true',
+    default=False,
+    help='Right adjust lines.',
 )
 
 args = parser.parse_args()
 
 def notify(COLOR):
-    text = [args.summary] if args.summary else []
+    text = args.summary.split('\n') if args.summary else []
     cmd = ['osd_cat',
            '--align=%s' % ALIGN,
            '--outline=1',
@@ -67,11 +75,13 @@ def notify(COLOR):
                 '--percentage=%d' % args.percentage,
                 ]
     elif args.body:
-        text += args.body
+        for line in args.body:
+            text += line.split('\n')
 
     # Left align text
-    ljust = max(map(len, text))
-    text = [line.ljust(ljust) for line in text]
+    if text and not args.rjust:
+        ljust = max([0] + map(len, text))
+        text = [line.ljust(ljust) for line in text]
 
     proc = subprocess.Popen(cmd, stdin = subprocess.PIPE)
 
