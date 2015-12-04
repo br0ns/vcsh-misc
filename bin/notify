@@ -78,6 +78,8 @@ def notify(COLOR):
         for line in args.body:
             text += line.split('\n')
 
+    cmd += ['--lines', str(len(text))]
+
     # Left align text
     if text and not args.rjust:
         ljust = max([0] + map(len, text))
