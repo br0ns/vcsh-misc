@@ -1,12 +1,15 @@
 #!/bin/bash
 
-BUP_DIR=/media/br0ns/backup/bup/
+MNT=/media/br0ns/backup
 TARGET=/home/br0ns/
 
-if [ ! -d $BUP_DIR ] ; then
-    echo "$BUP_DIR is not a directory"
+BUP_DIR="$MNT/bup/"
+HOST="$(hostname)"
+
+if ! mount | grep -q "$MNT" ; then
+    echo "$MNT is not mounted"
     exit 1
 fi
 
 BUP_DIR=$BUP_DIR sudo -E bup index -ux "$TARGET"
-BUP_DIR=$BUP_DIR sudo -E bup save -n home "$TARGET"
+BUP_DIR=$BUP_DIR sudo -E bup save -n "$HOST" "$TARGET"
