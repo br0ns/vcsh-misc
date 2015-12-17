@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e
+
+if [ $# -ne 2 ] ; then
+    echo "usage: $(basename $0) <device> <path>"
+    exit 1
+fi
+
+DEV="$1"
+MNT="$2"
+
+ID=crypt.$(tr -dc '0-9a-zA-Z' < /dev/urandom | head -c 16)
+
+echo "Opening LUKS container as '$ID'..."
+sudo cryptsetup open --type luks "$DEV" $ID
+echo "OK"
+
+function __on_error() {
+    echo -n "Closing LUKS container '$ID'... "
+    sudo cryptsetup close "$ID"
+    echo "OK"
+}
+trap '__on_error' ERR
+
+FS=/dev/mapper/$ID
+echo -n "Mounting '$FS' on '$MNT'... "
+sudo mount "$FS" "$MNT"
+echo "OK"

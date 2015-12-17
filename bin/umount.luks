@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+if [ $# -ne 1 ] ; then
+    echo "usage: $(basename $0) <path>"
+    exit 1
+fi
+
+MNT="$(readlink -f "$1")"
+
+FS="$(mount | grep "$MNT" | cut -d' ' -f 1)"
+
+if [ -z "$FS" ] ; then
+    echo "Not mounted"
+    exit 1
+fi
+
+ID="$(basename "$FS")"
+
+echo -n "Unmounting '$MNT'... "
+sudo umount "$MNT"
+echo "OK"
+
+echo -n "Closing LUKS container '$ID'... "
+sudo cryptsetup close "$ID"
+echo "OK"

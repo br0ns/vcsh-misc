@@ -1,7 +1,9 @@
 *
 !/bin
 !/bin/backup
+!/bin/mount.luks
 !/bin/notify
+!/bin/umount.luks
 !/bin/volume
 !/bin/xrandr-cycle
 !/.gitignore.d
