@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MNT=/media/br0ns/backup
+MNT=/media/backup
 TARGET=/home/br0ns/
 
 BUP_DIR="$MNT/bup/"
@@ -11,5 +11,19 @@ if ! mount | grep -q "$MNT" ; then
     exit 1
 fi
 
-BUP_DIR=$BUP_DIR sudo -E bup index -ux "$TARGET"
-BUP_DIR=$BUP_DIR sudo -E bup save -n "$HOST" "$TARGET"
+BUP_BIN="$(which bup)"
+if [ -z "$BUP_BIN" ] ; then
+    echo "Bup is not installed"
+    exit 1
+fi
+function bup () {
+    sudo "$BUP_BIN" -d "$BUP_DIR" $@
+}
+
+# Maybe initialize
+if ! bup ls 2>/dev/null ; then
+    bup init
+fi
+
+bup index -ux "$TARGET"
+bup save -n "$HOST" "$TARGET"
