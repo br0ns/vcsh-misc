@@ -2,6 +2,10 @@
 
 MNT=/media/backup
 TARGET=/home/br0ns/
+EXCLUDE=(
+    Downloads
+    .cache
+    )
 
 BUP_DIR="$MNT/bup/"
 HOST="$(hostname)"
@@ -25,5 +29,10 @@ if ! bup ls 2>/dev/null ; then
     bup init
 fi
 
-bup index -ux "$TARGET"
-bup save -n "$HOST" "$TARGET"
+EXCL=""
+for p in "${EXCLUDE[@]}" ; do
+    EXCL+="--exclude='$TARGET$p' "
+done
+
+bup index --update --one-file-system "$EXCL" "$TARGET"
+bup save --name="$HOST" "$TARGET"
