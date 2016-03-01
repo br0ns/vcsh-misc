@@ -31,7 +31,7 @@ fi
 
 EXCL=""
 for p in "${EXCLUDE[@]}" ; do
-    EXCL+="--exclude='$TARGET$p' "
+    EXCL+="--exclude-rx='^$TARGET$p' "
 done
 
 bup index --update --one-file-system "$EXCL" "$TARGET"
