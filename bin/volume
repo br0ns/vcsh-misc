@@ -1,8 +1,10 @@
 #!/usr/bin/env python2
 import os, sys, subprocess, re
 
+DEFAULT_STEP = 5
+
 def usage():
-    print 'usage: %s (+N|-N|toggle|mute|unmute)'
+    print 'usage: %s (+N|-N|toggle|mute|unmute)' % sys.argv[0]
     sys.exit(1)
 
 if len(sys.argv) != 2:
@@ -10,9 +12,12 @@ if len(sys.argv) != 2:
 
 opt = sys.argv[1]
 if opt[0] in '+-':
-    if not opt[1:].isdigit():
+    if len(opt[0]) == 1:
+        adjust = DEFAULT_STEP
+    elif opt[1:].isdigit():
+        adjust = int(opt[1:])
+    else:
         usage()
-    adjust = int(opt[1:])
     sign = opt[0]
     opt = 'adjust'
 elif opt.isdigit():
