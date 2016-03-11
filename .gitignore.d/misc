@@ -3,6 +3,7 @@
 !/bin/backup
 !/bin/mount.luks
 !/bin/notify
+!/bin/today
 !/bin/umount.luks
 !/bin/volume
 !/bin/xrandr-cycle

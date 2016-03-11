@@ -1,0 +1,46 @@
+#!/usr/bin/env python2
+
+EDITOR='emacs'
+TODAY='~/TODAY.md'
+ARCHIVE='~/.today'
+TEMPLATE='''# Things I should do today (%(date)s)
+- [ ]
+'''
+
+import os
+import sys
+import time
+
+def info(msg, fd=sys.stderr):
+    print >>fd, msg
+
+TODAY = os.path.expanduser(TODAY)
+ARCHIVE = os.path.expanduser(ARCHIVE)
+
+if not os.path.exists(ARCHIVE):
+    info('Creating archive directory: %s' % ARCHIVE)
+    os.mkdir(ARCHIVE)
+
+prefix, ext = os.path.splitext(os.path.basename(TODAY))
+YESTERDAY = os.path.join(
+    ARCHIVE, '%s.%s%s' %
+    (prefix,
+     time.strftime('%y-%m-%d', time.localtime(time.time() - 86400)),
+     ext))
+
+if not os.path.exists(YESTERDAY) and os.path.exists(TODAY):
+    info('Moving %s to %s' % (TODAY, YESTERDAY))
+    os.rename(TODAY, YESTERDAY)
+
+if not os.path.exists(TODAY):
+    template = TEMPLATE % {
+        'date': time.strftime('%y-%m-%d', time.localtime())
+    }
+    with open(TODAY, 'w') as fd:
+        fd.write(template)
+    # Touch file
+    with open(YESTERDAY, 'a'):
+        pass
+
+argv = [EDITOR, TODAY]
+os.execvp(argv[0], argv)
