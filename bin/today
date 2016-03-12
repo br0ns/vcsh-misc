@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 
-EDITOR='emacs'
-TODAY='~/TODAY.md'
-ARCHIVE='~/.today'
+EDITOR  ='emacs'
+TODAY   ='~/TODAY.md'
+ARCHIVE ='~/.today'
 TEMPLATE='''# Things I should do today (%(date)s)
 - [ ]
 '''
@@ -10,6 +10,7 @@ TEMPLATE='''# Things I should do today (%(date)s)
 import os
 import sys
 import time
+import re
 
 def info(msg, fd=sys.stderr):
     print >>fd, msg
@@ -17,10 +18,12 @@ def info(msg, fd=sys.stderr):
 TODAY = os.path.expanduser(TODAY)
 ARCHIVE = os.path.expanduser(ARCHIVE)
 
+# Create archive dir
 if not os.path.exists(ARCHIVE):
     info('Creating archive directory: %s' % ARCHIVE)
     os.mkdir(ARCHIVE)
 
+# Path to yesterday's TODO list
 prefix, ext = os.path.splitext(os.path.basename(TODAY))
 YESTERDAY = os.path.join(
     ARCHIVE, '%s.%s%s' %
@@ -28,19 +31,34 @@ YESTERDAY = os.path.join(
      time.strftime('%y-%m-%d', time.localtime(time.time() - 86400)),
      ext))
 
+# Day changed; move list to archive
 if not os.path.exists(YESTERDAY) and os.path.exists(TODAY):
     info('Moving %s to %s' % (TODAY, YESTERDAY))
     os.rename(TODAY, YESTERDAY)
 
+# Create today's TODO list
 if not os.path.exists(TODAY):
-    template = TEMPLATE % {
-        'date': time.strftime('%y-%m-%d', time.localtime())
-    }
-    with open(TODAY, 'w') as fd:
-        fd.write(template)
-    # Touch file
+    # Touch yesterday's list; if it does not exist we need to create it so
+    # todays list will not be archived immediately
     with open(YESTERDAY, 'a'):
         pass
+
+    # Today's list
+    today = TEMPLATE % {
+        'date': time.strftime('%y-%m-%d', time.localtime())
+    }
+
+    # Import unfinished tasks from yesterday's list
+    yesterday = file(YESTERDAY, 'r').read()
+    tasks = re.findall(r'- \[ ?] (.*)', yesterday)
+    if tasks:
+        today += '''
+# Things I should have done yesterday
+'''
+        today += '\n'.join('- [ ] %s' % task for task in tasks)
+
+    with open(TODAY, 'w') as fd:
+        fd.write(today)
 
 argv = [EDITOR, TODAY]
 os.execvp(argv[0], argv)
