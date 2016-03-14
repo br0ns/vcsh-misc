@@ -4,7 +4,6 @@ EDITOR  ='emacs'
 TODAY   ='~/TODAY.md'
 ARCHIVE ='~/.today'
 TEMPLATE='''# Things I should do today (%(date)s)
-- [ ]
 '''
 
 import os
@@ -14,6 +13,9 @@ import re
 
 def info(msg, fd=sys.stderr):
     print >>fd, msg
+
+def err(msg, fd=sys.stderr):
+    print >>fd, 'EE', msg
 
 TODAY = os.path.expanduser(TODAY)
 ARCHIVE = os.path.expanduser(ARCHIVE)
@@ -36,6 +38,30 @@ if not os.path.exists(YESTERDAY) and os.path.exists(TODAY):
     info('Moving %s to %s' % (TODAY, YESTERDAY))
     os.rename(TODAY, YESTERDAY)
 
+# Decide whether a recurring tasks recurs today
+def recur_today(when):
+    months = ('jan', 'feb', 'mar', 'apr', 'may', 'jun',
+              'jul', 'aug', 'sep', 'okt', 'nov', 'dec',)
+    days = ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun',)
+    aliases = {'weekday' : 'mon,tue,wed,thu,fri',
+               'everyday': 'mon,tue,wed,thu,fri,sat,sun',
+               'weekend' : 'sat,sun',
+               }
+    when = aliases.get(when, when)
+    now = time.localtime()
+    for w in when.split(','):
+        if '-' in w:
+            m, d = w.split('-', 1)
+            d = int(d)
+            m = months.index(m) + 1
+            if now.tm_mon == m and now.tm_mday == d:
+                return True
+        else:
+            d = days.index(w)
+            if now.tm_wday == d:
+                return True
+    return False
+
 # Create today's TODO list
 if not os.path.exists(TODAY):
     # Touch yesterday's list; if it does not exist we need to create it so
@@ -48,14 +74,36 @@ if not os.path.exists(TODAY):
         'date': time.strftime('%y-%m-%d', time.localtime())
     }
 
+    # Add recurring tasks
+    tasks = []
+    recur_path = os.path.join(ARCHIVE, 'recurring')
+    if os.path.exists(recur_path):
+        with open(recur_path) as fd:
+            for line in fd:
+                line = line.strip()
+                if not line or line[0] == '#':
+                    continue
+                try:
+                    when, task = line.split(' ', 1)
+                    recur = recur_today(when)
+                except:
+                    recur = False
+                if recur:
+                    tasks.append(task)
+    if tasks:
+        today += '\n'.join('- [ ] %s' % task for task in tasks)
+    else:
+        today += '- [ ]\n'
+
     # Import unfinished tasks from yesterday's list
     yesterday = file(YESTERDAY, 'r').read()
     tasks = re.findall(r'- \[ ?] (.*)', yesterday)
     if tasks:
         today += '''
+
 # Things I should have done yesterday
 '''
-        today += '\n'.join('- [ ] %s' % task for task in tasks)
+        today += '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
 
     with open(TODAY, 'w') as fd:
         fd.write(today)
