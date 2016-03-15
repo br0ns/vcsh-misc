@@ -74,6 +74,15 @@ if not os.path.exists(TODAY):
         'date': time.strftime('%y-%m-%d', time.localtime())
     }
 
+    # Already added tasks, so we don't repeat
+    seen = set()
+    def add_task(t):
+        if t not in seen:
+            tasks.append(t)
+            seen.add(t)
+    def show_tasks(t):
+        return '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
+
     # Add recurring tasks
     tasks = []
     recur_path = os.path.join(ARCHIVE, 'recurring')
@@ -89,9 +98,9 @@ if not os.path.exists(TODAY):
                 except:
                     recur = False
                 if recur:
-                    tasks.append(task)
+                    add_task(task)
     if tasks:
-        today += '\n'.join('- [ ] %s' % task for task in tasks)
+        today += show_tasks(tasks)
     else:
         today += '- [ ]\n'
 
@@ -100,10 +109,9 @@ if not os.path.exists(TODAY):
     tasks = re.findall(r'- \[ ?] (.*)', yesterday)
     if tasks:
         today += '''
-
 # Things I should have done yesterday
 '''
-        today += '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
+        today += show_tasks(tasks)
 
     with open(TODAY, 'w') as fd:
         fd.write(today)
