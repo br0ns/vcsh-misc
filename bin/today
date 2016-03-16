@@ -10,6 +10,10 @@ import os
 import sys
 import time
 import re
+import subprocess
+
+TODAY = os.path.expanduser(TODAY)
+ARCHIVE = os.path.expanduser(ARCHIVE)
 
 def info(msg, fd=sys.stderr):
     print >>fd, msg
@@ -17,26 +21,10 @@ def info(msg, fd=sys.stderr):
 def err(msg, fd=sys.stderr):
     print >>fd, 'EE', msg
 
-TODAY = os.path.expanduser(TODAY)
-ARCHIVE = os.path.expanduser(ARCHIVE)
-
-# Create archive dir
+    # Create archive dir
 if not os.path.exists(ARCHIVE):
     info('Creating archive directory: %s' % ARCHIVE)
     os.mkdir(ARCHIVE)
-
-# Path to yesterday's TODO list
-prefix, ext = os.path.splitext(os.path.basename(TODAY))
-YESTERDAY = os.path.join(
-    ARCHIVE, '%s.%s%s' %
-    (prefix,
-     time.strftime('%y-%m-%d', time.localtime(time.time() - 86400)),
-     ext))
-
-# Day changed; move list to archive
-if not os.path.exists(YESTERDAY) and os.path.exists(TODAY):
-    info('Moving %s to %s' % (TODAY, YESTERDAY))
-    os.rename(TODAY, YESTERDAY)
 
 # Decide whether a recurring tasks recurs today
 def recur_today(when):
@@ -62,57 +50,81 @@ def recur_today(when):
                 return True
     return False
 
-# Create today's TODO list
-if not os.path.exists(TODAY):
-    # Touch yesterday's list; if it does not exist we need to create it so
-    # todays list will not be archived immediately
-    with open(YESTERDAY, 'a'):
-        pass
+def go():
+    # Path to yesterday's TODO list
+    prefix, ext = os.path.splitext(os.path.basename(TODAY))
+    YESTERDAY = os.path.join(
+        ARCHIVE, '%s.%s%s' %
+        (prefix,
+         time.strftime('%y-%m-%d', time.localtime(time.time() - 86400)),
+         ext))
 
-    # Today's list
-    today = TEMPLATE % {
-        'date': time.strftime('%y-%m-%d', time.localtime())
-    }
+    # Day changed; move list to archive
+    if not os.path.exists(YESTERDAY) and os.path.exists(TODAY):
+        info('Moving %s to %s' % (TODAY, YESTERDAY))
+        os.rename(TODAY, YESTERDAY)
 
-    # Create task lists
+    # Create today's TODO list
+    if not os.path.exists(TODAY):
+        # Touch yesterday's list; if it does not exist we need to create it so
+        # todays list will not be archived immediately
+        with open(YESTERDAY, 'a'):
+            pass
 
-    def show_tasks(tasks):
-        return '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
+        # Today's list
+        today = TEMPLATE % {
+            'date': time.strftime('%y-%m-%d', time.localtime())
+        }
 
-    # Add recurring tasks
-    today_tasks = []
-    recur_path = os.path.join(ARCHIVE, 'recurring')
-    if os.path.exists(recur_path):
-        with open(recur_path) as fd:
-            for line in fd:
-                line = line.strip()
-                if not line or line[0] == '#':
-                    continue
-                try:
-                    when, task = line.split(' ', 1)
-                    recur = recur_today(when)
-                except:
-                    recur = False
-                if recur:
-                    today_tasks.append(task)
-    if today_tasks:
-        today += show_tasks(today_tasks)
-    else:
-        today += '- [ ]\n'
+        # Create task lists
 
-    # Import unfinished tasks from yesterday's list
-    yesterday_tasks = []
-    for t in re.findall(r'- \[ ?] (.*)', file(YESTERDAY, 'r').read()):
-        if t not in today_tasks:
-            yesterday_tasks.append(t)
-    if yesterday_tasks:
-        today += '''
-# Things I should have done yesterday
-'''
-        today += show_tasks(yesterday_tasks)
+        def show_tasks(tasks):
+            return '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
 
-    with open(TODAY, 'w') as fd:
-        fd.write(today)
+        # Add recurring tasks
+        today_tasks = []
+        recur_path = os.path.join(ARCHIVE, 'recurring')
+        if os.path.exists(recur_path):
+            with open(recur_path) as fd:
+                for line in fd:
+                    line = line.strip()
+                    if not line or line[0] == '#':
+                        continue
+                    try:
+                        when, task = line.split(' ', 1)
+                        recur = recur_today(when)
+                    except:
+                        recur = False
+                    if recur:
+                        today_tasks.append(task)
+        if today_tasks:
+            today += show_tasks(today_tasks)
+        else:
+            today += '- [ ]\n'
 
+        # Import unfinished tasks from yesterday's list
+        yesterday_tasks = []
+        for t in re.findall(r'- \[ ?] (.*)', file(YESTERDAY, 'r').read()):
+            if t not in today_tasks:
+                yesterday_tasks.append(t)
+        if yesterday_tasks:
+            today += '''
+    # Things I should have done yesterday
+    '''
+            today += show_tasks(yesterday_tasks)
+
+        with open(TODAY, 'w') as fd:
+            fd.write(today)
+
+# Open in editor and possibly reload when editor is closed
 argv = [EDITOR, TODAY]
-os.execvp(argv[0], argv)
+while True:
+    subprocess.call(argv)
+    try:
+        # TODO: Don't depend on python-zenity; re-implement here
+        from pythonzenity import Question
+        reload = Question(text='Reload todo list?')
+    except:
+        break
+    if not reload:
+        break
