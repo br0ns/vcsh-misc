@@ -74,17 +74,13 @@ if not os.path.exists(TODAY):
         'date': time.strftime('%y-%m-%d', time.localtime())
     }
 
-    # Already added tasks, so we don't repeat
-    seen = set()
-    def add_task(t):
-        if t not in seen:
-            tasks.append(t)
-            seen.add(t)
-    def show_tasks(t):
+    # Create task lists
+
+    def show_tasks(tasks):
         return '\n'.join('- [ ] %s' % task for task in tasks) + '\n'
 
     # Add recurring tasks
-    tasks = []
+    today_tasks = []
     recur_path = os.path.join(ARCHIVE, 'recurring')
     if os.path.exists(recur_path):
         with open(recur_path) as fd:
@@ -98,20 +94,22 @@ if not os.path.exists(TODAY):
                 except:
                     recur = False
                 if recur:
-                    add_task(task)
-    if tasks:
-        today += show_tasks(tasks)
+                    today_tasks.append(task)
+    if today_tasks:
+        today += show_tasks(today_tasks)
     else:
         today += '- [ ]\n'
 
     # Import unfinished tasks from yesterday's list
-    yesterday = file(YESTERDAY, 'r').read()
-    tasks = re.findall(r'- \[ ?] (.*)', yesterday)
-    if tasks:
+    yesterday_tasks = []
+    for t in re.findall(r'- \[ ?] (.*)', file(YESTERDAY, 'r').read()):
+        if t not in today_tasks:
+            yesterday_tasks.append(t)
+    if yesterday_tasks:
         today += '''
 # Things I should have done yesterday
 '''
-        today += show_tasks(tasks)
+        today += show_tasks(yesterday_tasks)
 
     with open(TODAY, 'w') as fd:
         fd.write(today)
