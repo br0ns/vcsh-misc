@@ -3,7 +3,12 @@
 EDITOR  ='emacs'
 TODAY   ='~/TODAY.md'
 ARCHIVE ='~/.today'
-TEMPLATE='''# Things I should do today (%(date)s)
+
+TEMPLATE_TODAY=\
+'''# Things I should do today (%(date)s)
+'''
+TEMPLATE_YESTERDAY=\
+'''# Things I should have done yesterday
 '''
 
 import os
@@ -108,9 +113,8 @@ def go():
             if t not in today_tasks:
                 yesterday_tasks.append(t)
         if yesterday_tasks:
-            today += '''
-    # Things I should have done yesterday
-    '''
+            today += '\n'
+            today += TEMPLATE_YESTERDAY
             today += show_tasks(yesterday_tasks)
 
         with open(TODAY, 'w') as fd:
@@ -119,6 +123,7 @@ def go():
 # Open in editor and possibly reload when editor is closed
 argv = [EDITOR, TODAY]
 while True:
+    go()
     subprocess.call(argv)
     try:
         # TODO: Don't depend on python-zenity; re-implement here
