@@ -77,7 +77,7 @@ def go():
             pass
 
         # Today's list
-        today = TEMPLATE % {
+        today = TEMPLATE_TODAY % {
             'date': time.strftime('%y-%m-%d', time.localtime())
         }
 
