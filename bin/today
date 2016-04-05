@@ -101,7 +101,7 @@ def go():
                     except:
                         recur = False
                     if recur:
-                        today_tasks.append(task)
+                        today_tasks.append(time.strftime(task))
         if today_tasks:
             today += show_tasks(today_tasks)
         else:
@@ -120,16 +120,75 @@ def go():
         with open(TODAY, 'w') as fd:
             fd.write(today)
 
-# Open in editor and possibly reload when editor is closed
-argv = [EDITOR, TODAY]
-while True:
-    go()
-    subprocess.call(argv)
-    try:
-        # TODO: Don't depend on python-zenity; re-implement here
-        from pythonzenity import Question
-        reload = Question(text='Reload todo list?')
-    except:
-        break
-    if not reload:
-        break
+def edit():
+    # Open in editor and possibly reload when editor is closed
+    argv = [EDITOR, TODAY]
+    while True:
+        go()
+        subprocess.call(argv)
+        try:
+            # TODO: Don't depend on python-zenity; re-implement here
+            from pythonzenity import Question
+            reload = Question(text='Reload todo list?')
+        except:
+            break
+        if not reload:
+            break
+
+def ls():
+    prefix, ext = os.path.splitext(os.path.basename(TODAY))
+    prev_skipped = []
+    for name in sorted(os.listdir(ARCHIVE)):
+        p, e = os.path.splitext(name)
+        if not p.startswith(prefix) or e != ext:
+            continue
+
+        date = p.split('.', 1)[1]
+        success = []
+        failure = []
+        skipped = []
+        data = open(os.path.join(ARCHIVE, name)).read()
+        for line in data.splitlines(False):
+            for mark, lst in zip(
+                    'x+- ',
+                    (success, success, failure, skipped)):
+                if line.startswith('- [%s] ' % mark):
+                    lst.append(line[6:])
+
+        if success or failure or skipped:
+            print '# %s' % date
+
+        if all(t in skipped for t in prev_skipped):
+            skipped_again = len(prev_skipped)
+            skipped_show = [t for t in skipped if t not in prev_skipped]
+        else:
+            skipped_again = 0
+            skipped_show = skipped
+
+        for mark, lst in zip('+- ', (success, failure, skipped_show)):
+            for task in lst:
+                print '- [%s] %s' % (mark, task)
+
+        if skipped_again:
+            print '(%d %s skipped again)' % (
+                skipped_again,
+                'tasks' if skipped_again else 'task',
+                )
+
+        prev_skipped = skipped
+
+def usage():
+    print >>sys.stderr, \
+        'usage: %s [ls]' % sys.argv[0]
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        edit()
+    elif len(sys.argv) == 2:
+        cmd = sys.argv[1]
+        if cmd == 'ls':
+            ls()
+        else:
+            usage()
+    else:
+        usage()
