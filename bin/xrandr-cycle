@@ -47,7 +47,7 @@ def switch():
     else:
         # No common resolution, turn on first display
         on = [con[0]]
-        off = con[1:]
+        off = [d[0] for d in con[1:]]
 
     on = [d[0] for d in on]
 
