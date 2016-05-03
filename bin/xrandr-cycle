@@ -7,7 +7,7 @@ def state():
     active = []
     cur = None
     for line in subprocess.check_output('xrandr').strip().splitlines():
-        m = re.match(r'([a-zA-Z0-9]+) connected', line)
+        m = re.match(r'([a-zA-Z0-9\-]+) connected', line)
         if m:
             cur = m.group(1)
             idx = len(connected)
