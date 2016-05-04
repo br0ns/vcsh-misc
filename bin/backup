@@ -4,6 +4,8 @@ MNT=/media/backup
 TARGET=/home/br0ns/
 EXCLUDE=(
     Downloads
+    downloads
+    films
     .cache
     )
 
