@@ -6,7 +6,12 @@ EXCLUDE=(
     Downloads
     downloads
     films
+    music
+    games
+    no-backup
     .cache
+    .cabal
+    .config
     )
 
 BUP_DIR="$MNT/bup/"
