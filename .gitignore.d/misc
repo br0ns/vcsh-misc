@@ -1,7 +1,9 @@
 *
 !/bin
 !/bin/backup
+!/bin/gitstatus
 !/bin/mount.luks
+!/bin/netwrap
 !/bin/notify
 !/bin/today
 !/bin/umount.luks
