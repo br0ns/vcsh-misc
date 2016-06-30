@@ -1,27 +1,13 @@
 #!/bin/bash
 
+DEV=/dev/sda
 MNT=/media/backup
 TARGET=/home/br0ns/
-EXCLUDE=(
-    Downloads
-    downloads
-    films
-    music
-    games
-    no-backup
-    .cache
-    .cabal
-    .config
-    )
-
 BUP_DIR="$MNT/bup/"
 HOST="$(hostname)"
+EXCLUDE_PATHS=$HOME/.backup-exclude-paths
 
-if ! mount | grep -q "$MNT" ; then
-    echo "$MNT is not mounted"
-    exit 1
-fi
-
+# Bake BUP_DIR into `bup` command
 BUP_BIN="$(which bup)"
 if [ -z "$BUP_BIN" ] ; then
     echo "Bup is not installed"
@@ -31,15 +17,47 @@ function bup () {
     sudo "$BUP_BIN" -d "$BUP_DIR" $@
 }
 
+# Mount?
+if [ $1 = "mount" ] ; then
+    if mount | grep -q "$MNT" ; then
+        echo "$MNT is already mounted"
+        exit
+    fi
+    mount.luks $DEV $MNT
+    exit
+fi
+
+# Assert that the disk is mounted
+if ! mount | grep -q "$MNT" ; then
+    echo "$MNT is not mounted"
+    exit 1
+fi
+
 # Maybe initialize
-if ! bup ls 2>/dev/null ; then
+if ! bup ls >/dev/null ; then
     bup init
 fi
 
-EXCL=""
-for p in "${EXCLUDE[@]}" ; do
-    EXCL+="--exclude-rx='^$TARGET$p' "
-done
+# Extra commands
+case $1 in
+    now)
+        if [ -f $EXCLUDE_PATHS ] ; then
+            EXCL="--exclude-from=$EXCLUDE_PATHS"
+        else
+            EXCL=""
+        fi
 
-bup index --update --one-file-system "$EXCL" "$TARGET"
-bup save --name="$HOST" "$TARGET"
+        bup index --print --modified --status --update --one-file-system \
+            "$EXCL" "$TARGET"
+        bup save --name="$HOST" "$TARGET"
+        ;;
+
+    umount)
+        umount.luks $MNT
+        ;;
+
+    *)
+        # Otherwise just act as a front-end for Bup
+        bup $@
+        ;;
+esac
