@@ -17,4 +17,4 @@ esac
 PORT=$1
 shift
 
-socat -d -d TCP-LISTEN:${PORT},REUSEADDR,FORK,BIND=localhost EXEC:"$@"
+socat -d -d TCP-LISTEN:${PORT},REUSEADDR,FORK,BIND=localhost SYSTEM:"$@"

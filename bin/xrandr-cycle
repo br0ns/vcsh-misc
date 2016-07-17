@@ -5,65 +5,107 @@ import subprocess, sys, os, re
 def state():
     connected = []
     active = []
-    cur = None
     for line in subprocess.check_output('xrandr').strip().splitlines():
+        # Screen resolution
+        m = re.match(r'Screen 0:.*current (\d+) x (\d+)', line)
+        if m:
+            width, height = m.groups()
+            width = int(width)
+            height = int(height)
+        # Connected output
         m = re.match(r'([a-zA-Z0-9\-]+) connected', line)
         if m:
             cur = m.group(1)
             idx = len(connected)
             connected.append((cur, []))
+        # Active output
         m = re.match(r'\s+([0-9]+)+x([0-9]+)+\s+[0-9]{2}\.[0-9]{2}(\*?)', line)
         if m:
-            x, y, a = m.groups()
-            x = int(x)
-            y = int(y)
-            connected[-1][1].append((x, y))
+            w, h, a = m.groups()
+            w = int(w)
+            h = int(h)
+            connected[-1][1].append((w, h))
             if a:
                 active.append(idx)
-    return connected, active
+    return connected, active, (width, height)
 
 def switch():
-    con, act = state()
-    # Cycle between each display and finally clone all displays.
-    if len(act) == 1:
+    '''Cycle between each display, tiling and finally cloning all displays.'''
+    con, act, mode = state()
+
+    # Default: turn on first display
+    on = [con[0]]
+    tile = True
+    if len(act) == len(con):
+        allmodes = []
+        for _, modes in con:
+            allmodes += modes
+        # If the screen doesn't match any mode then it must be tiled.  Switch to
+        # cloning.
+        if mode not in allmodes:
+            print 'Cloning display'
+            tile = False
+            on = con
+    elif len(act) == 1:
         idx = act[0] + 1
         if idx == len(con):
-            # Turn on all displays
+            # No more displays; turn on all displays
+            print 'Tiling displays'
             on = con
         else:
             # Turn on next display
+            print 'Turning on display #%d' % (idx + 1)
             on = [con[idx]]
     else:
-        # Turn on first display
-        on = [con[0]]
+        print 'Defaulting to first display'
 
-    off = [d for d in dict(con).keys() if d not in dict(on).keys()]
+    # There needs to be a common resolution if cloning
+    if len(on) > 1 and not tile:
+        for w, h in on[0][1]:
+            common = True
+            for _, modes in on[1:]:
+                ok = any(mode == (h, w) for mode in modes)
+                if not ok:
+                    common = False
+                    break
 
-    for r in on[0][1]:
-        if all(r in d[1] for d in on):
-            res = r
-            # Common resolution
-            break
+            if common:
+                print 'Best common resolution: %d x %d' % (w, h)
+                mode = ['--mode', '%dx%d' % (w, h)]
+                break
+
+        else:
+            print 'No common resolution, turning on first display'
+            on = [con[0]]
+            mode = ['--auto']
+
     else:
-        # No common resolution, turn on first display
-        on = [con[0]]
-        off = [d[0] for d in con[1:]]
+        mode = ['--auto']
 
     on = [d[0] for d in on]
-
-    if len(on) == 1:
-        mode = ['--auto']
-    else:
-        mode = ['--mode', '%dx%d' % res]
+    off = [d for d, _ in con if d not in on]
 
     args = ['xrandr']
     for d in off:
         args += ['--output', d, '--off']
 
+    prev = None
     for d in on:
         args += ['--output', d] + mode
+        if tile and prev:
+            args += ['--right-of', prev]
+        prev = d
 
+    print 'Running:', ' '.join(args)
     subprocess.call(args)
+
+    # Hack: Resize wallpaper and fix the keyboard
+    subprocess.call('''
+feh --bg-fill ~/.wallpaper.jpg
+setxkbmap us -variant altgr-intl -option compose:prsc,compose:menu,nodeadkeys
+xmodmap ~/.xmodmap
+    ''', shell=True)
+
 
 if __name__ == '__main__':
     switch()
